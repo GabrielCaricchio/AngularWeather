@@ -1,0 +1,139 @@
+<div class="auth-container">
+  <div class="background-decor">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+  </div>
+
+  <div class="glass-card">
+    <div class="brand">
+      <div class="logo-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="weather-icon-sun">
+          <circle cx="12" cy="12" r="4"></circle>
+          <path d="M12 2v2"></path>
+          <path d="M12 20v2"></path>
+          <path d="m4.93 4.93 1.41 1.41"></path>
+          <path d="m17.66 17.66 1.41 1.41"></path>
+          <path d="M2 12h2"></path>
+          <path d="M20 12h2"></path>
+          <path d="m6.34 17.66-1.41 1.41"></path>
+          <path d="m19.07 4.93-1.41 1.41"></path>
+        </svg>
+      </div>
+      <h1>AngularWeather</h1>
+      <p>Crie sua conta de monitoramento</p>
+    </div>
+
+    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="auth-form">
+      @if (errorMessage()) {
+        <div class="error-banner">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="alert-icon">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span>{{ errorMessage() }}</span>
+        </div>
+      }
+
+      @if (successMessage()) {
+        <div class="success-banner">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="alert-icon">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+          <span>{{ successMessage() }} Redirecionando...</span>
+        </div>
+      }
+
+      <div class="form-group">
+        <label for="name">Nome Completo</label>
+        <div class="input-wrapper">
+          <input
+            id="name"
+            type="text"
+            formControlName="name"
+            placeholder="Digite seu nome..."
+            [class.invalid]="registerForm.get('name')?.touched && registerForm.get('name')?.invalid"
+          />
+        </div>
+        @if (registerForm.get('name')?.touched && registerForm.get('name')?.hasError('required')) {
+          <small class="validation-error">O nome é obrigatório.</small>
+        }
+        @if (registerForm.get('name')?.touched && registerForm.get('name')?.hasError('minlength')) {
+          <small class="validation-error">Mínimo de 3 caracteres.</small>
+        }
+      </div>
+
+      <div class="form-group">
+        <label for="username">Nome de Usuário</label>
+        <div class="input-wrapper">
+          <input
+            id="username"
+            type="text"
+            formControlName="username"
+            placeholder="Escolha um nome de usuário..."
+            [class.invalid]="registerForm.get('username')?.touched && registerForm.get('username')?.invalid"
+          />
+        </div>
+        @if (registerForm.get('username')?.touched && registerForm.get('username')?.hasError('required')) {
+          <small class="validation-error">O usuário é obrigatório.</small>
+        }
+        @if (registerForm.get('username')?.touched && registerForm.get('username')?.hasError('minlength')) {
+          <small class="validation-error">Mínimo de 3 caracteres.</small>
+        }
+      </div>
+
+      <div class="form-group">
+        <label for="password">Senha</label>
+        <div class="input-wrapper">
+          <input
+            id="password"
+            type="password"
+            formControlName="password"
+            placeholder="Escolha uma senha..."
+            [class.invalid]="registerForm.get('password')?.touched && registerForm.get('password')?.invalid"
+          />
+        </div>
+        @if (registerForm.get('password')?.touched && registerForm.get('password')?.hasError('required')) {
+          <small class="validation-error">A senha é obrigatória.</small>
+        }
+        @if (registerForm.get('password')?.touched && registerForm.get('password')?.hasError('minlength')) {
+          <small class="validation-error">Mínimo de 4 caracteres.</small>
+        }
+      </div>
+
+      <div class="form-group">
+        <label for="confirmPassword">Confirmar Senha</label>
+        <div class="input-wrapper">
+          <input
+            id="confirmPassword"
+            type="password"
+            formControlName="confirmPassword"
+            placeholder="Confirme sua senha..."
+            [class.invalid]="(registerForm.get('confirmPassword')?.touched && registerForm.get('confirmPassword')?.invalid) || (registerForm.touched && registerForm.hasError('passwordsMismatch'))"
+          />
+        </div>
+        @if (registerForm.get('confirmPassword')?.touched && registerForm.get('confirmPassword')?.hasError('required')) {
+          <small class="validation-error">A confirmação de senha é obrigatória.</small>
+        }
+        @if (registerForm.touched && registerForm.hasError('passwordsMismatch')) {
+          <small class="validation-error">As senhas não conferem.</small>
+        }
+      </div>
+
+      <button type="submit" [disabled]="registerForm.invalid || isLoading()" class="btn-primary">
+        @if (isLoading()) {
+          <div class="spinner"></div>
+          <span>Cadastrando...</span>
+        } @else {
+          <span>Cadastrar</span>
+        }
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      <span>Já tem uma conta?</span>
+      <a routerLink="/login">Entre</a>
+    </div>
+  </div>
+</div>

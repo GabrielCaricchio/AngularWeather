@@ -1,0 +1,93 @@
+<div class="auth-container">
+  <div class="background-decor">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+  </div>
+
+  <div class="glass-card">
+    <div class="brand">
+      <div class="logo-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="weather-icon-sun">
+          <circle cx="12" cy="12" r="4"></circle>
+          <path d="M12 2v2"></path>
+          <path d="M12 20v2"></path>
+          <path d="m4.93 4.93 1.41 1.41"></path>
+          <path d="m17.66 17.66 1.41 1.41"></path>
+          <path d="M2 12h2"></path>
+          <path d="M20 12h2"></path>
+          <path d="m6.34 17.66-1.41 1.41"></path>
+          <path d="m19.07 4.93-1.41 1.41"></path>
+        </svg>
+      </div>
+      <h1>AngularWeather</h1>
+      <p>App de Monitoramento Climático</p>
+    </div>
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="auth-form">
+      @if (errorMessage()) {
+        <div class="error-banner">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="alert-icon">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span>{{ errorMessage() }}</span>
+        </div>
+      }
+
+      <div class="form-group">
+        <label for="username">Nome de Usuário</label>
+        <div class="input-wrapper">
+          <input
+            id="username"
+            type="text"
+            formControlName="username"
+            placeholder="Digite seu usuário..."
+            [class.invalid]="loginForm.get('username')?.touched && loginForm.get('username')?.invalid"
+          />
+          <span class="focus-border"></span>
+        </div>
+        @if (loginForm.get('username')?.touched && loginForm.get('username')?.hasError('required')) {
+          <small class="validation-error">O usuário é obrigatório.</small>
+        }
+        @if (loginForm.get('username')?.touched && loginForm.get('username')?.hasError('minlength')) {
+          <small class="validation-error">Mínimo de 3 caracteres.</small>
+        }
+      </div>
+
+      <div class="form-group">
+        <label for="password">Senha</label>
+        <div class="input-wrapper">
+          <input
+            id="password"
+            type="password"
+            formControlName="password"
+            placeholder="Digite sua senha..."
+            [class.invalid]="loginForm.get('password')?.touched && loginForm.get('password')?.invalid"
+          />
+          <span class="focus-border"></span>
+        </div>
+        @if (loginForm.get('password')?.touched && loginForm.get('password')?.hasError('required')) {
+          <small class="validation-error">A senha é obrigatória.</small>
+        }
+        @if (loginForm.get('password')?.touched && loginForm.get('password')?.hasError('minlength')) {
+          <small class="validation-error">Mínimo de 4 caracteres.</small>
+        }
+      </div>
+
+      <button type="submit" [disabled]="loginForm.invalid || isLoading()" class="btn-primary">
+        @if (isLoading()) {
+          <div class="spinner"></div>
+          <span>Entrando...</span>
+        } @else {
+          <span>Entrar</span>
+        }
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      <span>Não tem uma conta?</span>
+      <a routerLink="/register">Cadastre-se</a>
+    </div>
+  </div>
+</div>

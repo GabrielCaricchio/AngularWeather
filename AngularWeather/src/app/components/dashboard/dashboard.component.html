@@ -1,0 +1,581 @@
+<div class="dashboard-wrapper" [class]="weatherData()?.current?.condition?.class || 'weather-default'">
+  
+  <!-- BACKGROUND DECORATIVE GRADIENTS -->
+  <div class="background-glows">
+    <div class="glow glow-1"></div>
+    <div class="glow glow-2"></div>
+  </div>
+
+  <!-- NAVIGATION HEADER -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="app-logo">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="logo-svg">
+          <circle cx="12" cy="12" r="4"></circle>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+        </svg>
+        <span>AngularWeather</span>
+      </div>
+      @if (!isOnline()) {
+        <span class="offline-badge">
+          <span class="pulse-dot"></span> Offline
+        </span>
+      }
+    </div>
+
+    <div class="header-right">
+      <div class="user-welcome">
+        <span class="label">Olá,</span>
+        <span class="username">{{ currentUser()?.name }}</span>
+      </div>
+
+      <!-- ALERTS NOTIFICATION BELL -->
+      <div class="notification-bell-container" (click)="toggleNotificationsPanel()">
+        <button class="icon-btn bell-btn" [class.has-alerts]="weatherAlerts().length > 0" title="Alertas Meteorológicos">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path>
+            <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path>
+          </svg>
+          @if (weatherAlerts().length > 0) {
+            <span class="badge-count">{{ weatherAlerts().length }}</span>
+          }
+        </button>
+
+        <!-- ALERTS DROPDOWN PANEL -->
+        @if (showNotificationsPanel()) {
+          <div class="alerts-dropdown" (click)="$event.stopPropagation()">
+            <div class="dropdown-header">
+              <h3>Notificações e Alertas</h3>
+              @if (weatherAlerts().length > 0) {
+                <button (click)="clearAlerts($event)" class="btn-text">Limpar tudo</button>
+              }
+            </div>
+            <div class="dropdown-body">
+              @if (weatherAlerts().length === 0) {
+                <div class="empty-alerts">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="m9 12 2 2 4-4"></path>
+                  </svg>
+                  <p>Tudo sob controle! Nenhum alerta ativo no momento.</p>
+                </div>
+              } @else {
+                <div class="alerts-list">
+                  @for (alert of weatherAlerts(); track alert.id) {
+                    <div class="alert-item" [class]="alert.type">
+                      <div class="alert-content">
+                        <h4>{{ alert.title }}</h4>
+                        <p>{{ alert.message }}</p>
+                        <span class="alert-time">{{ alert.timestamp | date:'shortTime' }}</span>
+                      </div>
+                      <button (click)="removeAlert(alert.id, $event)" class="close-alert-btn">&times;</button>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+            
+            <div class="dropdown-footer">
+              @if (!permissionGranted()) {
+                <button (click)="requestNotificationPermission()" class="btn-dropdown-action">
+                  Ativar Notificações no Sistema
+                </button>
+              } @else {
+                <span class="notification-status-text">🔔 Notificações do sistema ativadas</span>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- LOGOUT BUTTON -->
+      <button (click)="logout()" class="icon-btn logout-btn" title="Sair da Conta">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN DASHBOARD CONTENT -->
+  <main class="dashboard-main">
+    
+    <!-- LEFT SIDEBAR: Search, GPS, Favorites, History & Simulation -->
+    <section class="sidebar-section">
+      
+      <!-- SEARCH BOX -->
+      <div class="sidebar-card search-card">
+        <label class="section-title">Buscar Cidade</label>
+        <div class="search-input-wrapper">
+          <div class="search-input-field">
+            <svg xmlns="http://www.w3.org/2000/svg" class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input 
+              type="text" 
+              placeholder="Digite o nome da cidade..." 
+              [value]="searchInput()"
+              (input)="onSearchInput($event)"
+              (focus)="searchResults().length > 0 && showSuggestions.set(true)"
+            />
+            @if (isSearching()) {
+              <div class="input-spinner"></div>
+            }
+          </div>
+
+          <!-- Auto-complete Suggestions Dropdown -->
+          @if (showSuggestions() && searchResults().length > 0) {
+            <ul class="suggestions-list">
+              @for (city of searchResults(); track city.latitude + ',' + city.longitude) {
+                <li (click)="fetchWeather(city)">
+                  <span class="city-name">{{ city.name }}</span>
+                  <span class="city-details">
+                    {{ city.admin1 ? city.admin1 + ', ' : '' }}{{ city.country }}
+                  </span>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+
+        <!-- GPS Button -->
+        <button (click)="loadWeatherByGPS()" class="btn-gps" [disabled]="isLoadingWeather()">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="3 11 22 2 13 21 11 13 3 11"></polygon>
+          </svg>
+          <span>Usar Minha Localização (GPS)</span>
+        </button>
+      </div>
+
+      <!-- FAVORITE CITIES LIST -->
+      <div class="sidebar-card favorites-card">
+        <div class="card-header">
+          <h3 class="section-title">Cidades Favoritas</h3>
+          <span class="count-badge">{{ favoriteCities().length }}</span>
+        </div>
+        
+        @if (favoriteCities().length === 0) {
+          <div class="empty-list-placeholder">
+            <p>Nenhuma cidade favorita cadastrada. Clique no ícone de coração do clima para favoritar!</p>
+          </div>
+        } @else {
+          <div class="favorite-grid">
+            @for (city of favoriteCities(); track city.latitude + ',' + city.longitude) {
+              <div class="favorite-item" (click)="fetchWeather(city)">
+                <div class="fav-info">
+                  <span class="fav-name">{{ city.name }}</span>
+                  <span class="fav-country">{{ city.admin1 ? city.admin1 + ', ' : '' }}{{ city.country }}</span>
+                </div>
+                <div class="fav-action">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                  </svg>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- SEARCH HISTORY LIST -->
+      <div class="sidebar-card history-card">
+        <div class="card-header">
+          <h3 class="section-title">Buscas Recentes</h3>
+          @if (searchHistory().length > 0) {
+            <button (click)="clearSearchHistory($event)" class="btn-text danger">Limpar</button>
+          }
+        </div>
+
+        @if (searchHistory().length === 0) {
+          <div class="empty-list-placeholder">
+            <p>Seu histórico de buscas está vazio.</p>
+          </div>
+        } @else {
+          <ul class="history-list">
+            @for (city of searchHistory(); track city.latitude + ',' + city.longitude) {
+              <li (click)="fetchWeather(city)">
+                <svg xmlns="http://www.w3.org/2000/svg" class="history-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <div class="history-text">
+                  <span class="history-name">{{ city.name }}</span>
+                  <span class="history-country">{{ city.country }}</span>
+                </div>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+
+      <!-- WEATHER ALERTS SIMULATION CONTROL PANEL -->
+      <div class="sidebar-card simulation-card">
+        <h3 class="section-title">Simulador de Alertas Climáticos</h3>
+        <p class="simulation-desc">Teste a recepção de alertas e notificações push diretamente no navegador:</p>
+        <div class="simulation-actions">
+          <button (click)="simulateStorm()" class="btn-simulate danger">
+            ⛈️ Simular Tempestade
+          </button>
+          <button (click)="simulateHeatwave()" class="btn-simulate danger">
+            ☀️ Simular Onda de Calor
+          </button>
+          <button (click)="simulateCold()" class="btn-simulate warning">
+            ❄️ Simular Frio Extremo
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT PANEL: Current weather details & Forecast grids -->
+    <section class="content-section">
+      
+      <!-- LOADING STATE -->
+      @if (isLoadingWeather()) {
+        <div class="loading-container">
+          <div class="weather-spinner"></div>
+          <p>Buscando dados climáticos em tempo real...</p>
+        </div>
+      }
+
+      <!-- ERROR STATE -->
+      @if (weatherError() && !isLoadingWeather()) {
+        <div class="error-container">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+          <p>{{ weatherError() }}</p>
+          <button (click)="loadWeatherByGPS()" class="btn-retry">Tentar Novamente</button>
+        </div>
+      }
+
+      <!-- WEATHER DATA DISPLAY -->
+      @if (weatherData() && !isLoadingWeather() && !weatherError()) {
+        <div class="weather-content-grid">
+          
+          <!-- 1. CURRENT DETAILED CONDITIONS CARD -->
+          <div class="main-weather-card">
+            
+            <!-- Cache badge -->
+            @if (weatherData()?.isCached) {
+              <div class="cache-badge-indicator" title="Dados meteorológicos salvos localmente">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="m21 16-4 4-4-4"></path>
+                  <path d="M17 20V4a2 2 0 0 0-2-2h-3"></path>
+                  <path d="M3 8a2 2 0 0 1 2-2h3"></path>
+                  <path d="M5 14v4a2 2 0 0 0 2 2h3"></path>
+                  <path d="M11 20h2"></path>
+                  <path d="M3 10V6a2 2 0 0 1 2-2h3"></path>
+                </svg>
+                <span>Offline (Atualizado: {{ weatherData()?.cachedAt }})</span>
+              </div>
+            }
+
+            <div class="weather-card-header">
+              <div class="city-heading">
+                <h2>{{ weatherData()?.city?.name }}</h2>
+                <p class="country-name">
+                  {{ weatherData()?.city?.admin1 ? weatherData()?.city?.admin1 + ', ' : '' }}{{ weatherData()?.city?.country }}
+                </p>
+              </div>
+
+              <!-- FAVORITE HEART BUTTON -->
+              <button (click)="toggleFavorite($event)" class="favorite-heart-btn" [class.is-fav]="isFavorite()" title="Favoritar cidade">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
+                </svg>
+              </button>
+            </div>
+
+            <!-- CORE WEATHER DETAILS -->
+            <div class="weather-card-body">
+              <div class="primary-conditions">
+                <!-- DYNAMIC WEATHER SVG ICON -->
+                <div class="weather-svg-container">
+                  @switch (weatherData()?.current?.condition?.icon) {
+                    @case ('sunny') {
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="weather-svg animation-spin">
+                        <circle cx="12" cy="12" r="5" fill="rgba(255, 235, 59, 0.2)"></circle>
+                        <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+                      </svg>
+                    }
+                    @case ('moon') {
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="weather-svg animation-float">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" fill="rgba(121, 134, 203, 0.2)"></path>
+                      </svg>
+                    }
+                    @case ('partly-cloudy-day') {
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="weather-svg">
+                        <path d="M12 2v2M4.93 4.93l1.41 1.41M2 12h2M6.34 17.66l-1.41 1.41" stroke="#ffb74d"></path>
+                        <circle cx="12" cy="12" r="4" stroke="#ffb74d"></circle>
+                        <path d="M18 10a5 5 0 0 0-9.1 2.8A3.5 3.5 0 0 0 10.5 19h7a4.5 4.5 0 0 0 .5-9Z" fill="rgba(255, 255, 255, 0.15)"></path>
+                      </svg>
+                    }
+                    @case ('partly-cloudy-night') {
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="weather-svg">
+                        <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" stroke="#7986cb"></path>
+                        <path d="M18 10a5 5 0 0 0-9.1 2.8A3.5 3.5 0 0 0 10.5 19h7a4.5 4.5 0 0 0 .5-9Z" fill="rgba(255, 255, 255, 0.15)"></path>
+                      </svg>
+                    }
+                    @case ('fog') {
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="weather-svg animation-float">
+                        <path d="M18 10a5 5 0 0 0-8 4h10a5 5 0 0 0-2-4Z"></path>
+                        <line x1="4" y1="14" x2="20" y2="14"></line>
+                        <line x1="6" y1="17" x2="18" y2="17"></line>
+                        <line x1="8" y1="20" x2="16" y2="20"></line>
+                      </svg>
+                    }
+                    @case ('drizzle') {
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="weather-svg">
+                        <path d="M20 10a5 5 0 0 0-9.1 2.8A3.5 3.5 0 0 0 12.5 19h7a4.5 4.5 0 0 0 .5-9Z"></path>
+                        <line x1="12" y1="20" x2="12" y2="22" stroke-dasharray="2,2"></line>
+                        <line x1="15" y1="20" x2="15" y2="22" stroke-dasharray="2,2"></line>
+                        <line x1="18" y1="20" x2="18" y2="22" stroke-dasharray="2,2"></line>
+                      </svg>
+                    }
+                    @case ('rainy') {
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="weather-svg">
+                        <path d="M20 10a5 5 0 0 0-9.1 2.8A3.5 3.5 0 0 0 12.5 19h7a4.5 4.5 0 0 0 .5-9Z" fill="rgba(33, 150, 243, 0.1)"></path>
+                        <line x1="12" y1="21" x2="10" y2="23" stroke="#2196f3"></line>
+                        <line x1="16" y1="21" x2="14" y2="23" stroke="#2196f3"></line>
+                        <line x1="20" y1="21" x2="18" y2="23" stroke="#2196f3"></line>
+                      </svg>
+                    }
+                    @case ('rain-showers') {
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="weather-svg">
+                        <path d="M20 10a5 5 0 0 0-9.1 2.8A3.5 3.5 0 0 0 12.5 19h7a4.5 4.5 0 0 0 .5-9Z"></path>
+                        <line x1="10" y1="20" x2="8" y2="22"></line>
+                        <line x1="14" y1="20" x2="12" y2="22"></line>
+                        <line x1="18" y1="20" x2="16" y2="22"></line>
+                      </svg>
+                    }
+                    @case ('snowy') {
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="weather-svg animation-float">
+                        <path d="M20 10a5 5 0 0 0-9.1 2.8A3.5 3.5 0 0 0 12.5 19h7a4.5 4.5 0 0 0 .5-9Z"></path>
+                        <circle cx="12" cy="21" r="1" fill="#ffffff" stroke="none"></circle>
+                        <circle cx="16" cy="21" r="1" fill="#ffffff" stroke="none"></circle>
+                        <circle cx="14" cy="23" r="1" fill="#ffffff" stroke="none"></circle>
+                      </svg>
+                    }
+                    @case ('snow-showers') {
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="weather-svg">
+                        <path d="M20 10a5 5 0 0 0-9.1 2.8A3.5 3.5 0 0 0 12.5 19h7a4.5 4.5 0 0 0 .5-9Z"></path>
+                        <path d="m11 20 2 2M13 20l-2 2M15 20l2 2M17 20l-2 2"></path>
+                      </svg>
+                    }
+                    @case ('snow-sleet') {
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="weather-svg">
+                        <path d="M20 10a5 5 0 0 0-9.1 2.8A3.5 3.5 0 0 0 12.5 19h7a4.5 4.5 0 0 0 .5-9Z"></path>
+                        <line x1="11" y1="21" x2="10" y2="22"></line>
+                        <line x1="16" y1="21" x2="15" y2="22"></line>
+                      </svg>
+                    }
+                    @case ('thunderstorm') {
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="weather-svg">
+                        <path d="M19 10a5 5 0 0 0-9-1.8A5 5 0 0 0 10 18h9a4.5 4.5 0 0 0 0-9Z" fill="rgba(33, 33, 33, 0.2)"></path>
+                        <path d="m13 18-2 3h3l-2 3" stroke="#ffeb3b" stroke-width="2" fill="none"></path>
+                      </svg>
+                    }
+                    @case ('thunderstorm-hail') {
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="weather-svg">
+                        <path d="M19 10a5 5 0 0 0-9-1.8A5 5 0 0 0 10 18h9a4.5 4.5 0 0 0 0-9Z"></path>
+                        <path d="m13 18-2 3h2l-2 3"></path>
+                        <circle cx="16" cy="20" r="1" fill="#fff" stroke="none"></circle>
+                      </svg>
+                    }
+                    @default {
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="weather-svg animation-float">
+                        <path d="M18 10a5 5 0 0 0-8-4 5 5 0 0 0-2 4 5 5 0 0 0 0 10h10a5 5 0 0 0 0-10Z" fill="rgba(255, 255, 255, 0.15)"></path>
+                      </svg>
+                    }
+                  }
+                </div>
+
+                <div class="temperature-info">
+                  <span class="value">{{ weatherData()?.current?.temperature?.toFixed(1) }}</span>
+                  <span class="unit">°C</span>
+                  <span class="condition-desc">{{ weatherData()?.current?.condition?.text }}</span>
+                </div>
+              </div>
+
+              <!-- WEATHER SUB-DETAILS LIST -->
+              <div class="weather-metrics">
+                
+                <!-- Humidity -->
+                <div class="metric-item">
+                  <div class="metric-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
+                    </svg>
+                  </div>
+                  <div class="metric-data">
+                    <span class="metric-label">Umidade</span>
+                    <span class="metric-val">{{ weatherData()?.current?.humidity }}%</span>
+                  </div>
+                </div>
+
+                <!-- Wind -->
+                <div class="metric-item">
+                  <div class="metric-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"></path>
+                    </svg>
+                  </div>
+                  <div class="metric-data">
+                    <span class="metric-label">Vento</span>
+                    <span class="metric-val">{{ weatherData()?.current?.windSpeed?.toFixed(1) }} km/h</span>
+                  </div>
+                </div>
+
+                <!-- Apparent Temp -->
+                <div class="metric-item">
+                  <div class="metric-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"></path>
+                    </svg>
+                  </div>
+                  <div class="metric-data">
+                    <span class="metric-label">Sensação</span>
+                    <span class="metric-val">{{ weatherData()?.current?.apparentTemperature?.toFixed(1) }}°C</span>
+                  </div>
+                </div>
+
+                <!-- Atmospheric Pressure -->
+                <div class="metric-item">
+                  <div class="metric-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <path d="m16.24 7.76-2.12 2.12a3 3 0 1 0-4.24 4.24l2.12-2.12"></path>
+                    </svg>
+                  </div>
+                  <div class="metric-data">
+                    <span class="metric-label">Pressão</span>
+                    <span class="metric-val">{{ weatherData()?.current?.pressure?.toFixed(0) }} hPa</span>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- SUNRISE / SUNSET -->
+              <div class="sun-times-row">
+                <div class="sun-metric">
+                  <span class="sun-label">🌅 Nascer do Sol</span>
+                  <span class="sun-val">{{ weatherData()?.daily?.[0]?.sunrise }}</span>
+                </div>
+                <div class="sun-metric">
+                  <span class="sun-label">🌇 Pôr do Sol</span>
+                  <span class="sun-val">{{ weatherData()?.daily?.[0]?.sunset }}</span>
+                </div>
+                <div class="sun-metric">
+                  <span class="sun-label">☀️ Índice UV</span>
+                  <span class="sun-val">{{ weatherData()?.daily?.[0]?.uvIndex?.toFixed(1) }}</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- 2. HOURLY FORECAST CARD (24 HOURS) -->
+          <div class="forecast-card hourly-forecast-card">
+            <h3 class="forecast-title">Previsão por Hora (Próximas 24 horas)</h3>
+            <div class="hourly-list-scroll">
+              @for (hour of weatherData()?.hourly; track hour.time) {
+                <div class="hourly-item">
+                  <span class="hour-time">{{ hour.time }}</span>
+                  <div class="hour-icon-wrapper">
+                    @switch (hour.condition.icon) {
+                      @case ('sunny') {
+                        <svg class="hour-svg" viewBox="0 0 24 24" fill="none" stroke="#ffeb3b" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path></svg>
+                      }
+                      @case ('moon') {
+                        <svg class="hour-svg" viewBox="0 0 24 24" fill="none" stroke="#7986cb" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"></path></svg>
+                      }
+                      @case ('partly-cloudy-day') {
+                        <svg class="hour-svg" viewBox="0 0 24 24" fill="none" stroke="#e0e0e0" stroke-width="2"><path d="M18 10a5 5 0 0 0-9.1 2.8A3.5 3.5 0 0 0 10.5 19h7a4.5 4.5 0 0 0 .5-9Z"></path></svg>
+                      }
+                      @case ('partly-cloudy-night') {
+                        <svg class="hour-svg" viewBox="0 0 24 24" fill="none" stroke="#9e9e9e" stroke-width="2"><path d="M18 10a5 5 0 0 0-9.1 2.8A3.5 3.5 0 0 0 10.5 19h7a4.5 4.5 0 0 0 .5-9Z"></path></svg>
+                      }
+                      @case ('rainy') {
+                        <svg class="hour-svg" viewBox="0 0 24 24" fill="none" stroke="#2196f3" stroke-width="2"><path d="M20 10a5 5 0 0 0-9.1 2.8A3.5 3.5 0 0 0 12.5 19h7a4.5 4.5 0 0 0 .5-9Z"></path><line x1="12" y1="20" x2="10" y2="22"></line><line x1="16" y1="20" x2="14" y2="22"></line></svg>
+                      }
+                      @case ('thunderstorm') {
+                        <svg class="hour-svg" viewBox="0 0 24 24" fill="none" stroke="#ffeb3b" stroke-width="2"><path d="M19 10a5 5 0 0 0-9-1.8A5 5 0 0 0 10 18h9a4.5 4.5 0 0 0 0-9Z"></path><path d="m13 18-2 3h3l-2 3"></path></svg>
+                      }
+                      @default {
+                        <svg class="hour-svg" viewBox="0 0 24 24" fill="none" stroke="#b0bec5" stroke-width="2"><path d="M18 10a5 5 0 0 0-8-4 5 5 0 0 0-2 4 5 5 0 0 0 0 10h10a5 5 0 0 0 0-10Z"></path></svg>
+                      }
+                    }
+                  </div>
+                  <span class="hour-temp">{{ hour.temperature.toFixed(0) }}°</span>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- 3. DAILY FORECAST CARD (7 DAYS) -->
+          <div class="forecast-card daily-forecast-card">
+            <h3 class="forecast-title">Previsão para os Próximos 7 Dias</h3>
+            <div class="daily-list">
+              @for (day of weatherData()?.daily; track day.date) {
+                <div class="daily-item">
+                  <div class="day-info">
+                    <span class="day-name">{{ day.dayOfWeek }}</span>
+                    <span class="day-date">{{ day.date }}</span>
+                  </div>
+
+                  <div class="day-condition">
+                    <!-- Icon -->
+                    <div class="day-icon-wrapper">
+                      @switch (day.condition.icon) {
+                        @case ('sunny') {
+                          <svg class="day-svg" viewBox="0 0 24 24" fill="none" stroke="#ffeb3b" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path></svg>
+                        }
+                        @case ('partly-cloudy-day') {
+                          <svg class="day-svg" viewBox="0 0 24 24" fill="none" stroke="#e0e0e0" stroke-width="2"><path d="M18 10a5 5 0 0 0-9.1 2.8A3.5 3.5 0 0 0 10.5 19h7a4.5 4.5 0 0 0 .5-9Z"></path></svg>
+                        }
+                        @case ('rainy') {
+                          <svg class="day-svg" viewBox="0 0 24 24" fill="none" stroke="#2196f3" stroke-width="2"><path d="M20 10a5 5 0 0 0-9.1 2.8A3.5 3.5 0 0 0 12.5 19h7a4.5 4.5 0 0 0 .5-9Z"></path><line x1="12" y1="20" x2="10" y2="22"></line><line x1="16" y1="20" x2="14" y2="22"></line></svg>
+                        }
+                        @case ('thunderstorm') {
+                          <svg class="day-svg" viewBox="0 0 24 24" fill="none" stroke="#ffeb3b" stroke-width="2"><path d="M19 10a5 5 0 0 0-9-1.8A5 5 0 0 0 10 18h9a4.5 4.5 0 0 0 0-9Z"></path><path d="m13 18-2 3h3l-2 3"></path></svg>
+                        }
+                        @default {
+                          <svg class="day-svg" viewBox="0 0 24 24" fill="none" stroke="#b0bec5" stroke-width="2"><path d="M18 10a5 5 0 0 0-8-4 5 5 0 0 0-2 4 5 5 0 0 0 0 10h10a5 5 0 0 0 0-10Z"></path></svg>
+                        }
+                      }
+                    </div>
+                    <span class="day-condition-text">{{ day.condition.text }}</span>
+                  </div>
+
+                  <!-- Details (UV index, Sunrise/Sunset) -->
+                  <div class="day-sun-info">
+                    <span>☀️ UV {{ day.uvIndex.toFixed(0) }}</span>
+                    <span>🌅 {{ day.sunrise }}</span>
+                    <span>🌇 {{ day.sunset }}</span>
+                  </div>
+
+                  <!-- Range temperatures -->
+                  <div class="day-temps">
+                    <span class="temp-min">{{ day.tempMin.toFixed(0) }}°</span>
+                    <div class="temp-bar-bg">
+                      <div class="temp-bar" [style.left.%]="10" [style.right.%]="15"></div>
+                    </div>
+                    <span class="temp-max">{{ day.tempMax.toFixed(0) }}°</span>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+
+        </div>
+      }
+    </section>
+
+  </main>
+</div>
