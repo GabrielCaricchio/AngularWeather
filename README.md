@@ -87,7 +87,7 @@ Painel com informações completas em tempo real, previsões de 24h e 7 dias, bu
 
 1. Clone este repositório:
    ```bash
-   git clone <link-do-repositorio>
+   git clone https://github.com/GabrielCaricchio/AngularWeather.git
    ```
 2. Navegue até a pasta do projeto:
    ```bash
