@@ -108,24 +108,6 @@ npm run start
 
 Após compilar, abra o navegador em `http://localhost:4200/`.
 
-### Compilar para Produção
-
-Para gerar o pacote de produção da aplicação:
-
-```bash
-npm run build
-```
-
-Os arquivos otimizados serão criados no diretório `dist/AngularWeather`.
-
-### Executar Testes Unitários
-
-Para rodar a suíte de testes unitários com o Vitest:
-
-```bash
-npm run test
-```
-
 ---
 
 ## 📄 Licença
